@@ -1,7 +1,6 @@
 #ifndef TIMERCTRL_H_
 #define TIMERCTRL_H_
 
-#include <stdint.h>
 
 
 typedef struct

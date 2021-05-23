@@ -16,19 +16,22 @@ LDSCRIPT = ./src/linker.ld
 
 #include ../../../resources/gcc.mk
 # Set it to yes if you are using the sifive precompiled GCC pack
-SIFIVE_GCC_PACK ?= yes
+# SIFIVE_GCC_PACK ?= yes
+# 
+# ifeq ($(SIFIVE_GCC_PACK),yes)
+# 	RISCV_NAME ?= riscv64-unknown-elf
+# 	RISCV_PATH ?= /opt/riscv/
+# else
+# 	RISCV_NAME ?= riscv32-unknown-elf
+# 	ifeq ($(MULDIV),yes)
+# 		RISCV_PATH ?= /opt/riscv32im/
+# 	else
+# 		RISCV_PATH ?= /opt/riscv32i/
+# 	endif
+# endif
 
-ifeq ($(SIFIVE_GCC_PACK),yes)
-	RISCV_NAME ?= riscv64-unknown-elf
-	RISCV_PATH ?= /opt/riscv/
-else
-	RISCV_NAME ?= riscv32-unknown-elf
-	ifeq ($(MULDIV),yes)
-		RISCV_PATH ?= /opt/riscv32im/
-	else
-		RISCV_PATH ?= /opt/riscv32i/
-	endif
-endif
+RISCV_NAME = riscv64-unknown-elf
+RISCV_PATH = /usr
 
 MABI=ilp32
 MARCH := rv32i
@@ -59,11 +62,12 @@ ifeq ($(BENCH),yes)
 	CFLAGS += -fno-inline
 endif
 
-ifeq ($(SIFIVE_GCC_PACK),yes)
-	RISCV_CLIB=$(RISCV_PATH)/$(RISCV_NAME)/lib/$(MARCH)/$(MABI)/
-else
-	RISCV_CLIB=$(RISCV_PATH)/$(RISCV_NAME)/lib/
-endif
+# appears unused
+# ifeq ($(SIFIVE_GCC_PACK),yes)
+# 	RISCV_CLIB=$(RISCV_PATH)/$(RISCV_NAME)/lib/$(MARCH)/$(MABI)/
+# else
+# 	RISCV_CLIB=$(RISCV_PATH)/$(RISCV_NAME)/lib/
+# endif
 
 
 

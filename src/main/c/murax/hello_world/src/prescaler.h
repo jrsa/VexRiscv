@@ -1,7 +1,7 @@
 #ifndef PRESCALERCTRL_H_
 #define PRESCALERCTRL_H_
 
-#include <stdint.h>
+// #include <stdint.h>
 
 
 typedef struct

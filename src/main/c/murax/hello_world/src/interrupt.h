@@ -1,7 +1,7 @@
 #ifndef INTERRUPTCTRL_H_
 #define INTERRUPTCTRL_H_
 
-#include <stdint.h>
+// #include <stdint.h>
 
 typedef struct
 {
