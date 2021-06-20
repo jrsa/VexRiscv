@@ -9,7 +9,7 @@ import spinal.lib._
 import spinal.lib.bus.amba3.apb._
 import spinal.lib.bus.amba4.axi._
 import spinal.lib.com.jtag.Jtag
-import spinal.lib.com.uart.{Apb3UartCtrl, Uart, UartCtrlGenerics, UartCtrlMemoryMappedConfig}
+import spinal.lib.com.uart.{Apb3UartCtrl, Uart, UartCtrlGenerics, UartCtrlMemoryMappedConfig, UartCtrlInitConfig, UartParityType, UartStopType}
 import spinal.lib.graphic.RgbConfig
 import spinal.lib.graphic.vga.{Axi4VgaCtrl, Axi4VgaCtrlGenerics, Vga}
 import spinal.lib.io.TriStateArray
@@ -45,6 +45,13 @@ object BrieyConfig{
           preSamplingSize   = 1,
           samplingSize      = 5,
           postSamplingSize  = 2
+        ),
+        // james note: copied this from murax
+        initConfig = UartCtrlInitConfig(
+          baudrate = 115200,
+          dataLength = 7,  //7 => 8 bits
+          parity = UartParityType.NONE,
+          stop = UartStopType.ONE
         ),
         txFifoDepth = 16,
         rxFifoDepth = 16
@@ -387,7 +394,7 @@ object Briey{
   def main(args: Array[String]) {
     val config = SpinalConfig()
     config.generateVerilog({
-      val toplevel = new Briey(BrieyConfig.default)
+      val toplevel = new Briey(BrieyConfig.default.copy(axiFrequency = 50 MHz))
       toplevel.axi.vgaCtrl.vga.ctrl.io.error.addAttribute(Verilator.public)
       toplevel.axi.vgaCtrl.vga.ctrl.io.frameStart.addAttribute(Verilator.public)
       toplevel
