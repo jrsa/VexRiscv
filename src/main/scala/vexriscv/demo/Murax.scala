@@ -151,6 +151,22 @@ object MuraxConfig{
   }
 }
 
+object Apb3Dummy{
+  def getApb3Config() = Apb3Config(addressWidth = 4,dataWidth = 32)
+}
+
+case class Apb3Dummy(gpioWidth: Int, withReadSync : Boolean) extends Component {
+
+  val io = new Bundle {
+    val apb  = slave(Apb3(Apb3Gpio.getApb3Config()))
+  }
+
+  val myRegister = Reg(UInt(32 bits))
+
+  val ctrl = Apb3SlaveFactory(io.apb)
+  ctrl.driveAndRead(myRegister, 0)
+}
+
 
 case class Murax(config : MuraxConfig) extends Component{
   import config._
@@ -293,6 +309,9 @@ case class Murax(config : MuraxConfig) extends Component{
     val timer = new MuraxApb3Timer()
     timerInterrupt setWhen(timer.io.interrupt)
     apbMapping += timer.io.apb     -> (0x20000, 4 kB)
+
+    val dummy = new Apb3Dummy(gpioWidth = gpioWidth, withReadSync = true)
+    apbMapping += dummy.io.apb     -> (0x30000, 4 kB)
 
     val xip = ifGen(genXip)(new Area{
       val ctrl = Apb3SpiXdrMasterCtrl(xipConfig)
@@ -476,9 +495,22 @@ object MuraxWithRamInit{
     SpinalVerilog(
         Murax(
             MuraxConfig.default.copy(
-                coreFrequency = 50 MHz,
+                coreFrequency = 25 MHz,
                 onChipRamSize = 8 kB,
                 onChipRamHexFile = "src/main/c/murax/hello_world/build/hello_world.hex"
+            )
+        )
+    )
+  }
+}
+
+object MuraxWithoutRamInit{
+  def main(args: Array[String]) {
+    SpinalVerilog(
+        Murax(
+            MuraxConfig.default.copy(
+                coreFrequency = 50 MHz,
+                onChipRamSize = 16 kB
             )
         )
     )
