@@ -55,7 +55,7 @@ ifeq ($(DEBUG),yes)
 endif
 
 ifeq ($(DEBUG),no)
-	CFLAGS += -g -Os
+	CFLAGS += -g3 -O0
 endif
 
 ifeq ($(BENCH),yes)

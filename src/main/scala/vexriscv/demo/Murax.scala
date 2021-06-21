@@ -151,6 +151,45 @@ object MuraxConfig{
   }
 }
 
+// waveform generation/i2s output apb3 slave. i dont yet understand the scala build 
+// system well enough to put somewhere outside the VexRiscV tree so im just sticking 
+// it right here for now.
+
+case class audiogen() extends BlackBox{
+
+  val clk = in Bool()
+  val reset = in Bool()
+  val ena = in Bool() // sample rate clock from i2s timing generator
+  val gate = in Bool()
+
+  val f_up = in Bool()
+  val f_dn = in Bool()
+
+  val freq_in = in UInt(32 bits)
+
+  val l_data = out SInt(24 bits)
+  val r_data = out SInt(24 bits)
+
+  mapCurrentClockDomain(clk, reset = reset, resetActiveLevel = HIGH)
+}
+
+
+case class i2s_out() extends BlackBox{
+  val clk = in Bool()
+  val reset = in Bool()
+  val load = out Bool() // goes to audiogen
+
+  val l_data = in SInt(24 bits)
+  val r_data = in SInt(24 bits)
+
+    // i2s out
+  val sclk = out Bool()
+  val sdout = out Bool()
+  val lrclk = out Bool()
+  mapCurrentClockDomain(clk, reset = reset, resetActiveLevel = HIGH)
+}
+
+
 object Apb3Dummy{
   def getApb3Config() = Apb3Config(addressWidth = 4,dataWidth = 32)
 }
@@ -158,13 +197,39 @@ object Apb3Dummy{
 case class Apb3Dummy(gpioWidth: Int, withReadSync : Boolean) extends Component {
 
   val io = new Bundle {
-    val apb  = slave(Apb3(Apb3Gpio.getApb3Config()))
+    val apb  = slave(Apb3(Apb3Dummy.getApb3Config()))
+    
+    val sclk = out Bool
+    val sdout  = out Bool
+    val lrclk = out Bool
   }
 
-  val myRegister = Reg(UInt(32 bits))
+    val i2s_out_instance = i2s_out()
+    val audiogen_instance = audiogen()
+
+    // internal signals from waveform gen to i2s gen:
+  audiogen_instance.l_data  <> i2s_out_instance.l_data
+  audiogen_instance.r_data  <> i2s_out_instance.r_data
+  audiogen_instance.ena  <> i2s_out_instance.load
+
+    // i2s out
+    // ideally, this would just be
+    //  io.i2s <> i2s_out.i2s
+  io.sclk  <> i2s_out_instance.sclk 
+  io.sdout <> i2s_out_instance.sdout
+  io.lrclk <> i2s_out_instance.lrclk
+
+  val frequency = Reg(UInt(32 bits)) init (103079215);
+  frequency <> audiogen_instance.freq_in;
+
+  // tie these off for now, may not use them ever
+  True <> audiogen_instance.gate;
+  False <> audiogen_instance.f_up;
+  False <> audiogen_instance.f_dn;
 
   val ctrl = Apb3SlaveFactory(io.apb)
-  ctrl.driveAndRead(myRegister, 0)
+  ctrl.driveAndRead(frequency, 0)
+
 }
 
 
@@ -184,6 +249,12 @@ case class Murax(config : MuraxConfig) extends Component{
     val uart = master(Uart())
 
     val xip = ifGen(genXip)(master(SpiXdrMaster(xipConfig.ctrl.spi)))
+
+    // i2s outputs (note: i think you can make an i2s "bundle" to avoid typing out
+    // the signal names repetitively. punting that for now to keep moving.
+    val i2s_sclk = out Bool()
+    val i2s_sdout = out Bool()
+    val i2s_lrclk = out Bool()
   }
 
 
@@ -312,6 +383,11 @@ case class Murax(config : MuraxConfig) extends Component{
 
     val dummy = new Apb3Dummy(gpioWidth = gpioWidth, withReadSync = true)
     apbMapping += dummy.io.apb     -> (0x30000, 4 kB)
+
+    // XXX need to create i2s bundle
+    io.i2s_sclk <> dummy.io.sclk
+    io.i2s_sdout <> dummy.io.sdout
+    io.i2s_lrclk <> dummy.io.lrclk
 
     val xip = ifGen(genXip)(new Area{
       val ctrl = Apb3SpiXdrMasterCtrl(xipConfig)
